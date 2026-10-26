@@ -135,13 +135,19 @@ All handled in `backend/app/llm_gateway.py`, the only module that calls the API.
 
 | Situation | What the app does | What the learner sees |
 | --- | --- | --- |
-| 200 + quota headers | Records the headers | Quota shown on the Metrics page |
+| 200 + quota headers | Records the headers (remaining / limit) | Quota shown on the Metrics page |
+| Remaining quota below `QUOTA_PACING_THRESHOLD` (20% by default) | Proactively uses the fallback class for mid-size steps, *before* spending a call that would likely fail | "Conserving quota" banner and badge — this is a deliberate pace-down, not an error |
 | Team quota exhausted | Waits the delay the service states (`Retry-After` or message), then retries | Banner with a countdown; the group can keep chatting |
 | Mid-size saturated (503) | Falls back to compact for that step; degraded answers are not cached | "Lighter mode" banner and badge |
 | Compact saturated (503) | Waits `Retry-After` and retries (twice) | "Retrying in N s" status |
 | Request beyond a ceiling (400) | Halves the output budget, trims context, resends once | Nothing, or a clean error message |
 | Network error | Retries once | Clean error message, never a frozen screen |
 | Waiting on any model | Concurrency cap + per-room queue | Staged progress text with a timer |
+
+Pacing (`LLMGateway._should_pace_down`) and reactive fallback (after an actual
+503) share the same compact-class path, but are logged and surfaced
+separately (`fallback_reason`: `"pacing"` vs `"saturated"`) so the Metrics
+page and the technical report can show how often each one fired.
 
 The **degraded-mode switch** (Metrics page, `POST /api/admin/chaos`) simulates
 a mid-size 503 or a quota wait inside the gateway, so you can test and demo the

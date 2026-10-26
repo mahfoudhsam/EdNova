@@ -107,7 +107,8 @@ async def handle_message(gateway: LLMGateway, room: Room, text: str, emit: Emit)
         )
         result = await gateway.chat("explain", _messages(system, room, text), route_reason=reason, on_status=emit)
         if result.fell_back:
-            reason += " (mid-size busy: answered by compact)"
+            reason += (" (quota running low: paced down to compact)" if result.fallback_reason == "pacing"
+                       else " (mid-size busy: answered by compact)")
         room.confused_streak = 0
 
     reply = _reply(result.text, result.model_class, result.model, step_name, reason,

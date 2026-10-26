@@ -51,6 +51,7 @@ class LLMResult:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     fell_back: bool = False
+    fallback_reason: Optional[str] = None   # "saturated" | "pacing", set when fell_back is True
     route_reason: str = ""
 
 
@@ -66,6 +67,8 @@ class QuotaState:
     headers: dict[str, str] = field(default_factory=dict)
     updated: float = 0.0
     waiting_until: float = 0.0          # set while we wait on a quota delay
+    remaining: Optional[int] = None     # parsed from x-ratelimit-remaining-requests
+    limit: Optional[int] = None         # parsed from x-ratelimit-limit-requests
 
 
 _RETRY_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:s\b|sec|second)", re.I)
@@ -125,9 +128,24 @@ class LLMGateway:
         model_class = route.model_class
         max_tokens = route.max_tokens
         fell_back = False
+        fallback_reason: Optional[str] = None
         shrunk = False
         quota_waits = 0
         saturation_retries = 0
+
+        # Proactive pacing (API guide section 5): when remaining quota is
+        # already low, use the fallback class up front instead of spending
+        # one of the scarce mid-size slots only to hit a 429/503 anyway.
+        if model_class == "midsize" and route.fallback and self._should_pace_down():
+            fell_back = True
+            fallback_reason = "pacing"
+            metrics.log_call(step=step, model_class=model_class, model=settings.models[model_class],
+                             status=-2, route_reason=route_reason,
+                             error=f"paced down to {route.fallback}: quota {self.quota.remaining}/{self.quota.limit}")
+            model_class = route.fallback
+            max_tokens = min(max_tokens, router.get("hint").max_tokens * 2)
+            await _emit(on_status, {"kind": "pacing", "fallback": model_class,
+                                    "remaining": self.quota.remaining, "limit": self.quota.limit})
 
         while True:
             model = settings.models[model_class]
@@ -135,7 +153,7 @@ class LLMGateway:
                 await self._simulate_chaos(step, model_class, model, on_status)
                 return await self._call_once(
                     step, model_class, model, messages, max_tokens, route,
-                    fell_back, route_reason, on_status,
+                    fell_back, fallback_reason, route_reason, on_status,
                 )
 
             except _SimulatedSaturation:
@@ -176,6 +194,7 @@ class LLMGateway:
             if saturated:
                 if model_class == "midsize" and route.fallback and not fell_back:
                     fell_back = True
+                    fallback_reason = "saturated"
                     model_class = route.fallback
                     max_tokens = min(max_tokens, router.get("hint").max_tokens * 2)
                     await _emit(on_status, {"kind": "midsize_busy", "fallback": model_class})
@@ -199,7 +218,7 @@ class LLMGateway:
             raise GatewayError(f"HTTP {err_status}", "Something went wrong with that request. Try rephrasing it.", err_status)
 
     async def _call_once(self, step, model_class, model, messages, max_tokens, route: Route,
-                         fell_back, route_reason, on_status) -> LLMResult:
+                         fell_back, fallback_reason, route_reason, on_status) -> LLMResult:
         if self._sem.locked():
             await _emit(on_status, {"kind": "queued"})
         async with self._sem:
@@ -226,7 +245,7 @@ class LLMGateway:
             text=text, step=step, model_class=model_class, model=model, latency_ms=latency_ms,
             prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
             completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
-            fell_back=fell_back, route_reason=route_reason,
+            fell_back=fell_back, fallback_reason=fallback_reason, route_reason=route_reason,
         )
 
     # ------------------------------------------------------------ embeddings
@@ -267,10 +286,31 @@ class LLMGateway:
         if q:
             self.quota.headers = q
             self.quota.updated = time.time()
+            for k, v in q.items():
+                lk = k.lower()
+                if "remaining" in lk:
+                    self.quota.remaining = _as_int(v)
+                elif "limit" in lk:
+                    self.quota.limit = _as_int(v)
+
+    def _should_pace_down(self) -> bool:
+        """True when known remaining headroom is below the pacing threshold.
+
+        Nothing fires until we have real header data (self.quota.remaining is
+        None before the first successful call), so the very first request in
+        a room is never paced down on no information.
+        """
+        r, l = self.quota.remaining, self.quota.limit
+        if r is None or l is None or l <= 0:
+            return False
+        return (r / l) < settings.quota_pacing_threshold
 
     def quota_snapshot(self) -> dict[str, Any]:
         return {
             "headers": self.quota.headers,
+            "remaining": self.quota.remaining,
+            "limit": self.quota.limit,
+            "pacing_threshold": settings.quota_pacing_threshold,
             "updated": self.quota.updated,
             "waiting_s": max(0.0, round(self.quota.waiting_until - time.time(), 1)),
             "chaos": self.chaos.__dict__,
@@ -279,6 +319,13 @@ class LLMGateway:
 
 class _SimulatedSaturation(Exception):
     pass
+
+
+def _as_int(value: str) -> Optional[int]:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
 
 
 def _trim_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:

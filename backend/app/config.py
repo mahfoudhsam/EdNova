@@ -50,6 +50,11 @@ class Settings:
     max_quota_waits: int = field(default_factory=lambda: _int("MAX_QUOTA_WAITS", 3))
     max_retry_after_s: float = field(default_factory=lambda: _float("MAX_RETRY_AFTER_S", 60))
 
+    # Below this fraction of remaining/limit quota, a step that has a fallback
+    # class proactively uses it instead of waiting for a 429/503 - "pace
+    # requests" from the API guide's quota section (section 5).
+    quota_pacing_threshold: float = field(default_factory=lambda: _float("QUOTA_PACING_THRESHOLD", 0.2))
+
     # --- Storage ----------------------------------------------------------
     db_path: str = field(default_factory=lambda: os.getenv("DB_PATH", str(BACKEND_DIR / "ednova.sqlite3")))
     content_path: str = field(default_factory=lambda: os.getenv("CONTENT_PATH", str(REPO_DIR / "content" / "exercises.json")))

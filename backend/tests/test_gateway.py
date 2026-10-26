@@ -75,3 +75,30 @@ async def test_simulated_chaos_switch(gateway):
     gateway.chaos.midsize_unavailable = True
     res = await gateway.chat("explain", MSG)
     assert res.fell_back and res.model_class == "compact"
+
+
+async def test_low_quota_paces_down_before_hitting_saturation(gateway):
+    """Below the pacing threshold, the gateway proactively uses the fallback
+    class for a mid-size step - it never spends a mid-size call only to be
+    told the quota is gone."""
+    gateway.quota.remaining, gateway.quota.limit = 5, 60   # 5/60 well under the 0.2 default
+    events = []
+
+    async def on_status(e):
+        events.append(e["kind"])
+
+    res = await gateway.chat("explain", MSG, on_status=on_status)
+    assert res.model_class == "compact" and res.fell_back
+    assert res.fallback_reason == "pacing"
+    assert "pacing" in events
+
+
+async def test_healthy_quota_does_not_pace_down(gateway):
+    gateway.quota.remaining, gateway.quota.limit = 50, 60   # well above the threshold
+    res = await gateway.chat("explain", MSG)
+    assert res.model_class == "midsize" and not res.fell_back
+
+
+async def test_quota_headers_feed_remaining_and_limit(gateway):
+    await gateway.chat("hint", MSG)
+    assert gateway.quota.remaining is not None and gateway.quota.limit is not None

@@ -171,6 +171,9 @@ async def _answer(room: Room, text: str, asked_by: str) -> None:
         if event.get("kind") == "midsize_busy":
             await room.broadcast({"type": "banner", "level": "warn", "text":
                                   "Lighter mode: the large model is busy, so answers are shorter for now."})
+        elif event.get("kind") == "pacing":
+            await room.broadcast({"type": "banner", "level": "info", "text":
+                                  "Conserving the team's shared quota: using the fast model for this answer."})
         elif event.get("kind") == "quota_wait":
             await room.broadcast({"type": "banner", "level": "info", "seconds": event.get("seconds"),
                                   "text": "Team quota reached. EdNova will answer in a few seconds - keep discussing meanwhile."})
