@@ -1,0 +1,24 @@
+# secrets
+.env
+*.env
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# data (contains logs; purge after the event)
+*.sqlite3
+benchmark_results.csv
+
+# node
+node_modules/
+frontend/dist/
+
+# os / editors
+.DS_Store
+.vscode/
+.idea/

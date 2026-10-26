@@ -1,0 +1,139 @@
+{
+  "subject": "Bac math - fonctions et dérivées",
+  "language": "fr",
+  "license": "Original exercises written for EdNova (synthetic). Replace or extend with your own.",
+  "exercises": [
+    {
+      "id": "deriv-01",
+      "title": "Dérivée d'un polynôme",
+      "skills": ["derivee.polynome"],
+      "statement": "Soit f(x) = 3x² - 5x + 2. Calculer f'(x), puis f'(1).",
+      "steps": [
+        {
+          "goal": "Dériver chaque terme du polynôme.",
+          "work": "(x²)' = 2x donc (3x²)' = 6x ; (-5x)' = -5 ; (2)' = 0. Donc f'(x) = 6x - 5.",
+          "hint": "Quelle est la dérivée de x^n ? Applique-la terme par terme, sans oublier la constante.",
+          "misconception": "Oublier que la dérivée d'une constante est 0, ou écrire (3x²)' = 3x."
+        },
+        {
+          "goal": "Évaluer la dérivée en x = 1.",
+          "work": "f'(1) = 6 × 1 - 5 = 1.",
+          "hint": "Remplace x par 1 dans l'expression de f'(x), pas dans f(x).",
+          "misconception": "Calculer f(1) au lieu de f'(1)."
+        }
+      ],
+      "final_answer": "f'(x) = 6x - 5 et f'(1) = 1."
+    },
+    {
+      "id": "deriv-02",
+      "title": "Dérivée d'un quotient et sens de variation",
+      "skills": ["derivee.quotient", "variations"],
+      "statement": "Soit f(x) = (2x + 1)/(x - 3) définie pour x ≠ 3. Calculer f'(x) et en déduire le sens de variation de f.",
+      "steps": [
+        {
+          "goal": "Identifier u et v et rappeler la formule (u/v)' = (u'v - uv')/v².",
+          "work": "u = 2x + 1, u' = 2 ; v = x - 3, v' = 1.",
+          "hint": "f est un quotient : quelles sont les deux fonctions u et v, et leurs dérivées ?",
+          "misconception": "Écrire (u/v)' = u'/v'."
+        },
+        {
+          "goal": "Appliquer la formule et simplifier le numérateur.",
+          "work": "f'(x) = [2(x - 3) - (2x + 1) × 1]/(x - 3)² = (2x - 6 - 2x - 1)/(x - 3)² = -7/(x - 3)².",
+          "hint": "Développe 2(x - 3) puis soustrais (2x + 1) en faisant attention au signe moins.",
+          "misconception": "Erreur de signe : -(2x + 1) devient -2x + 1."
+        },
+        {
+          "goal": "Étudier le signe de f'(x) pour conclure.",
+          "work": "(x - 3)² > 0 pour x ≠ 3 et -7 < 0, donc f'(x) < 0 : f est strictement décroissante sur ]-∞ ; 3[ et sur ]3 ; +∞[.",
+          "hint": "Quel est le signe d'un carré ? Et celui de -7 ?",
+          "misconception": "Dire que f est décroissante sur R \\ {3} d'un seul bloc."
+        }
+      ],
+      "final_answer": "f'(x) = -7/(x - 3)² < 0 : f est strictement décroissante sur ]-∞ ; 3[ et sur ]3 ; +∞[."
+    },
+    {
+      "id": "deriv-03",
+      "title": "Équation de la tangente",
+      "skills": ["derivee.polynome", "tangente"],
+      "statement": "Soit f(x) = x³ - 3x. Déterminer l'équation de la tangente à la courbe de f au point d'abscisse 2.",
+      "steps": [
+        {
+          "goal": "Rappeler la formule de la tangente : y = f'(a)(x - a) + f(a).",
+          "work": "Ici a = 2, il faut donc f(2) et f'(2).",
+          "hint": "De quelles deux valeurs as-tu besoin pour écrire l'équation d'une tangente en a ?",
+          "misconception": "Utiliser f'(x) au lieu de f'(a) dans la formule."
+        },
+        {
+          "goal": "Calculer f(2) et f'(2).",
+          "work": "f(2) = 8 - 6 = 2 ; f'(x) = 3x² - 3 donc f'(2) = 12 - 3 = 9.",
+          "hint": "Calcule d'abord f'(x), puis remplace x par 2 dans f et dans f'.",
+          "misconception": "Calculer 2³ = 6."
+        },
+        {
+          "goal": "Écrire et simplifier l'équation.",
+          "work": "y = 9(x - 2) + 2 = 9x - 16.",
+          "hint": "Remplace f'(2) et f(2) dans la formule puis développe.",
+          "misconception": "Oublier de développer ou se tromper de signe : 9(x - 2) = 9x - 18."
+        }
+      ],
+      "final_answer": "T : y = 9x - 16."
+    },
+    {
+      "id": "deriv-04",
+      "title": "Tableau de variations",
+      "skills": ["derivee.polynome", "variations", "extremums"],
+      "statement": "Soit f(x) = x³ - 3x² + 2 sur R. Dresser le tableau de variations de f et préciser ses extremums locaux.",
+      "steps": [
+        {
+          "goal": "Calculer et factoriser f'(x).",
+          "work": "f'(x) = 3x² - 6x = 3x(x - 2).",
+          "hint": "Après avoir dérivé, cherche un facteur commun.",
+          "misconception": "Ne pas factoriser, ce qui rend l'étude du signe difficile."
+        },
+        {
+          "goal": "Étudier le signe de f'(x).",
+          "work": "f'(x) = 0 pour x = 0 ou x = 2 ; f'(x) > 0 sur ]-∞ ; 0[ et ]2 ; +∞[, f'(x) < 0 sur ]0 ; 2[.",
+          "hint": "Un produit de deux facteurs : fais un tableau de signes avec 3x et (x - 2).",
+          "misconception": "Oublier une racine ou inverser les signes entre les racines."
+        },
+        {
+          "goal": "Conclure : variations et extremums.",
+          "work": "f croissante sur ]-∞ ; 0], décroissante sur [0 ; 2], croissante sur [2 ; +∞[. Maximum local f(0) = 2, minimum local f(2) = 8 - 12 + 2 = -2.",
+          "hint": "Quand f' passe de + à -, que se passe-t-il pour f ? Calcule ensuite f(0) et f(2).",
+          "misconception": "Confondre la valeur de x et la valeur de f(x) de l'extremum."
+        }
+      ],
+      "final_answer": "Croissante sur ]-∞ ; 0], décroissante sur [0 ; 2], croissante sur [2 ; +∞[ ; maximum local 2 en x = 0, minimum local -2 en x = 2."
+    },
+    {
+      "id": "deriv-05",
+      "title": "Dérivée d'une racine (fonction composée)",
+      "skills": ["derivee.composee"],
+      "statement": "Soit f(x) = √(x² + 1). Calculer f'(x).",
+      "steps": [
+        {
+          "goal": "Reconnaître la forme √u et rappeler (√u)' = u'/(2√u).",
+          "work": "u(x) = x² + 1 > 0 pour tout x, u'(x) = 2x.",
+          "hint": "Qu'est-ce qui se trouve sous la racine ? Comment dérive-t-on √u ?",
+          "misconception": "Écrire (√u)' = 1/(2√u) en oubliant u'."
+        },
+        {
+          "goal": "Appliquer la formule et simplifier.",
+          "work": "f'(x) = 2x/(2√(x² + 1)) = x/√(x² + 1).",
+          "hint": "Remplace u et u' dans la formule, puis simplifie par 2.",
+          "misconception": "Ne pas simplifier, ou simplifier les 2 de façon incorrecte."
+        }
+      ],
+      "final_answer": "f'(x) = x/√(x² + 1)."
+    }
+  ],
+  "glossary": [
+    {"fr": "dérivée", "ar": "المشتقة", "en": "derivative", "darija": "el dérivée"},
+    {"fr": "tangente", "ar": "المماس", "en": "tangent line", "darija": "el tangente"},
+    {"fr": "croissante", "ar": "متزايدة", "en": "increasing", "darija": "tetla3 / croissante"},
+    {"fr": "décroissante", "ar": "متناقصة", "en": "decreasing", "darija": "tahbet / décroissante"},
+    {"fr": "tableau de variations", "ar": "جدول التغيرات", "en": "variation table", "darija": "tableau de variations"},
+    {"fr": "extremum local", "ar": "قيمة قصوى محلية", "en": "local extremum", "darija": "max / min local"},
+    {"fr": "fonction composée", "ar": "دالة مركبة", "en": "composite function", "darija": "fonction composée"}
+  ]
+}

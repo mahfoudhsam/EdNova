@@ -1,0 +1,22 @@
+{"id": "fr-01", "category": "tutoring_fr", "prompt": "Je dois dériver f(x) = 3x² - 5x + 2 mais je ne sais pas par où commencer."}
+{"id": "fr-02", "category": "tutoring_fr", "prompt": "J'ai trouvé f'(x) = 3x - 5 pour f(x) = 3x² - 5x + 2, c'est juste ?"}
+{"id": "fr-03", "category": "tutoring_fr", "prompt": "Pourquoi la dérivée d'une constante est égale à 0 ?"}
+{"id": "fr-04", "category": "tutoring_fr", "prompt": "Comment on trouve l'équation de la tangente en un point ?"}
+{"id": "fr-05", "category": "tutoring_fr", "prompt": "Pour (2x+1)/(x-3) j'ai trouvé une dérivée égale à 2, je pense que c'est faux."}
+{"id": "fr-06", "category": "tutoring_fr", "prompt": "Explique-moi comment dresser un tableau de variations à partir de f'(x)."}
+{"id": "fr-07", "category": "tutoring_fr", "prompt": "C'est quoi la différence entre f(2) et f'(2) ?"}
+{"id": "en-01", "category": "tutoring_en", "prompt": "How do I differentiate the square root of x squared plus one?"}
+{"id": "en-02", "category": "tutoring_en", "prompt": "I don't get why f' negative means the function decreases."}
+{"id": "en-03", "category": "tutoring_en", "prompt": "Is the tangent to x^3 - 3x at x = 2 equal to y = 9x - 18?"}
+{"id": "ar-01", "category": "tutoring_msa", "prompt": "كيف أحسب مشتقة دالة كسرية؟"}
+{"id": "ar-02", "category": "tutoring_msa", "prompt": "ما معنى أن تكون الدالة متزايدة على مجال؟"}
+{"id": "dz-01", "category": "darija_latin", "prompt": "chnowa ma3neha dérivée? ma fhemt chay"}
+{"id": "dz-02", "category": "darija_latin", "prompt": "3lech el dérivée mta3 constante = 0?"}
+{"id": "dz-03", "category": "darija_latin", "prompt": "kifech nlawej 3al tangente f point x=2? 9olli el étape loula barka"}
+{"id": "dz-04", "category": "darija_latin", "prompt": "l9it f'(x)=6x-5, s7i7a wala le?"}
+{"id": "dz-05", "category": "darija_latin", "prompt": "el tableau de variations ma nefhmouch, kifech na3rf win tetla3 w win tahbet?"}
+{"id": "dz-06", "category": "darija_arabic", "prompt": "شنوة معناها المشتقة؟ ما فهمتش"}
+{"id": "dz-07", "category": "darija_arabic", "prompt": "علاش f' سالبة معناها الدالة تهبط؟"}
+{"id": "dz-08", "category": "darija_arabic", "prompt": "كيفاش نحسب f'(1) كي عندي f'(x)=6x-5؟"}
+{"id": "mx-01", "category": "mixed", "prompt": "bon ena 3malt u'v - uv' sur v² mais el signe ghalet je pense"}
+{"id": "mx-02", "category": "mixed", "prompt": "chnowa el formule mta3 (racine u)' svp"}

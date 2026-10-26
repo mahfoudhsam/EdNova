@@ -1,0 +1,38 @@
+# EdNova routing table — the documented, deliberate choice of which model class
+# handles which step (required by the challenge). Edit here, not in code.
+#
+#   class:       compact | midsize
+#   max_tokens:  output budget for the step (keeps us under the per-request ceiling)
+#   temperature: lower = more deterministic
+#   fallback:    class to use when the primary class is saturated (503)
+#   why:         one line for the README / technical report
+
+steps:
+  triage:
+    class: compact
+    max_tokens: 120
+    temperature: 0.0
+    why: "Classification (intent, language, confusion) - short JSON output"
+
+  chat:
+    class: compact
+    max_tokens: 120
+    temperature: 0.4
+    why: "Greetings and off-topic redirects - short, no reasoning"
+
+  hint:
+    class: compact
+    max_tokens: 160
+    temperature: 0.3
+    why: "One guiding question grounded in the current solution step"
+
+  explain:
+    class: midsize
+    max_tokens: 450
+    temperature: 0.3
+    fallback: compact
+    why: "Step-by-step explanation - reasoning and learner-facing writing"
+
+# Steps added later (v1-v5) go here, e.g.:
+#  quiz_check:  {class: compact, max_tokens: 80,  temperature: 0.0}
+#  wrap_up:     {class: midsize, max_tokens: 600, temperature: 0.3, fallback: compact}
