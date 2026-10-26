@@ -21,6 +21,13 @@ Emit = Callable[[dict], Awaitable[None]]
 INTENTS = {"hint", "explain", "check", "greeting", "off_topic", "other"}
 LANGUAGES = {"darija_arabic", "darija_latin", "msa", "fr", "en", "mixed"}
 
+# The hint prompt only defines rungs 0 (gentle nudge), 1 (guiding question) and
+# 2 (show the first move) - see prompts/hint.txt. room.hint_level must stay
+# capped at this top rung: it feeds the exact-match cache key (make_key below),
+# so an uncapped, ever-growing level would mint a brand-new cache key on every
+# single hint request past rung 2, and none of them would ever be reused.
+MAX_HINT_LEVEL = 2
+
 _GREETING_RE = re.compile(
     r"^\s*(salam|slm|ahla|aslema|bonjour|bonsoir|salut|hello|hi|hey|merci|thanks|thank you|يعيشك|سلام|مرحبا|عسلامة)\b[\s!.,]*$",
     re.I,
@@ -84,10 +91,10 @@ async def handle_message(gateway: LLMGateway, room: Room, text: str, emit: Emit)
         system = content.prompt(
             "hint", exercise_statement=ex["statement"], step_number=step_number, step_count=step_count,
             step_goal=step["goal"], step_hint=step.get("hint", ""), misconception=step.get("misconception", ""),
-            hint_level=min(room.hint_level, 2), language=lang,
+            hint_level=room.hint_level, language=lang,
         )
         result = await gateway.chat("hint", _messages(system, room, text), route_reason=reason, on_status=emit)
-        room.hint_level += 1
+        room.hint_level = min(room.hint_level + 1, MAX_HINT_LEVEL)
 
     else:  # explain
         await emit({"kind": "stage", "label": "Reading the course notes"})

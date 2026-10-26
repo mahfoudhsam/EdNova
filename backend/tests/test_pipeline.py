@@ -58,3 +58,19 @@ async def test_fallback_answer_is_not_cached(gateway):
 async def test_darija_is_detected(gateway):
     r = await handle_message(gateway, room(), "chnowa ma3neha dérivée? ma fhemt chay", noop)
     assert r["language"] == "darija_latin"
+
+
+async def test_hint_level_caps_at_top_rung_and_cache_is_reused(gateway):
+    """room.hint_level feeds the cache key, so it must stop climbing once the
+    hint prompt's top rung (2) is reached - otherwise every further hint
+    request mints a fresh, never-reused cache key forever."""
+    rm = room()
+    for _ in range(5):
+        r = await handle_message(gateway, rm, "aide-moi", noop)
+        assert r["step"] == "hint"
+    assert rm.hint_level == 2          # capped, not still climbing after 5 asks
+
+    before = metrics.summary()["calls_ok"]
+    r = await handle_message(gateway, rm, "aide-moi", noop)
+    assert r["cached"] is True         # same text at the (now stable) top rung -> cache hit
+    assert metrics.summary()["calls_ok"] == before
