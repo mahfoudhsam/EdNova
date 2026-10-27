@@ -250,20 +250,45 @@ class LLMGateway:
 
     # ------------------------------------------------------------ embeddings
     async def embed(self, texts: list[str]) -> list[list[float]]:
-        """Embeddings are metered separately: batch them and reuse vectors."""
-        async with self._sem:
-            t0 = time.perf_counter()
-            try:
-                resp = await self.client.embeddings.create(model=settings.embedding_model, input=texts)
-            except APIStatusError as err:
-                metrics.log_call(step="embed", model_class="embedding", model=settings.embedding_model,
-                                 status=err.status_code, error=str(err.message)[:300])
-                raise GatewayError(str(err.message), "Search is unavailable right now.", err.status_code)
-            latency_ms = int((time.perf_counter() - t0) * 1000)
-        metrics.log_call(step="embed", model_class="embedding", model=settings.embedding_model,
-                         status=200, latency_ms=latency_ms,
-                         prompt_tokens=getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0)
-        return [d.embedding for d in resp.data]
+        """Embeddings are metered separately, on their own quota.
+
+        rag.search() catches GatewayError from this method and degrades to
+        keyword search rather than losing the explain step - so a single
+        transient failure (quota wait, saturation, network blip) is worth
+        one retry here before giving up, and every failure must surface as
+        GatewayError (not a raw SDK exception) for that degrade path to run.
+        """
+        retried = False
+        while True:
+            async with self._sem:
+                t0 = time.perf_counter()
+                try:
+                    resp = await self.client.embeddings.create(model=settings.embedding_model, input=texts)
+                except APIStatusError as err:
+                    quota = _is_quota_error(err)
+                    saturated = err.status_code == 503 and not quota
+                    metrics.log_call(step="embed", model_class="embedding", model=settings.embedding_model,
+                                     status=err.status_code, error=str(err.message)[:300])
+                    if (quota or saturated) and not retried:
+                        retried = True
+                        delay = min(_retry_after_seconds(err.response, str(err.message), default=3.0),
+                                   settings.max_retry_after_s)
+                        await asyncio.sleep(delay)
+                        continue
+                    raise GatewayError(str(err.message), "Search is unavailable right now.", err.status_code)
+                except (APITimeoutError, APIConnectionError) as err:
+                    metrics.log_call(step="embed", model_class="embedding", model=settings.embedding_model,
+                                     status=0, error=type(err).__name__)
+                    if not retried:
+                        retried = True
+                        await asyncio.sleep(1)
+                        continue
+                    raise GatewayError(str(err), "Search is unavailable right now.")
+                latency_ms = int((time.perf_counter() - t0) * 1000)
+            metrics.log_call(step="embed", model_class="embedding", model=settings.embedding_model,
+                             status=200, latency_ms=latency_ms,
+                             prompt_tokens=getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0)
+            return [d.embedding for d in resp.data]
 
     # ---------------------------------------------------------------- helpers
     async def _simulate_chaos(self, step, model_class, model, on_status):

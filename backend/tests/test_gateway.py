@@ -1,7 +1,10 @@
 """The error contract from the API guide, tested against the mock server."""
 import time
+from unittest.mock import AsyncMock
 
+import httpx
 import pytest
+from openai import APIConnectionError
 
 import mock_llm
 from app import metrics
@@ -102,3 +105,40 @@ async def test_healthy_quota_does_not_pace_down(gateway):
 async def test_quota_headers_feed_remaining_and_limit(gateway):
     await gateway.chat("hint", MSG)
     assert gateway.quota.remaining is not None and gateway.quota.limit is not None
+
+
+def _embed_rows():
+    # metrics.summary()'s errors_by_status deliberately excludes step="embed"
+    # rows (it tracks chat-call errors only), so read the raw log instead.
+    return [r for r in metrics.recent(50) if r["step"] == "embed"]
+
+
+async def test_embed_retries_once_then_succeeds_on_a_transient_blip(gateway):
+    mock_llm.chaos["embed_fail_once"] = True
+    vectors = await gateway.embed(["bonjour tout le monde"])
+    assert len(vectors) == 1 and len(vectors[0])
+    rows = _embed_rows()
+    assert sum(1 for r in rows if r["status"] == 503) == 1   # the one failed attempt, logged
+    assert sum(1 for r in rows if r["status"] == 200) == 1   # then the retry succeeded
+
+
+async def test_embed_gives_up_as_a_clean_gateway_error_on_a_sustained_outage(gateway):
+    mock_llm.chaos["embed_down"] = True
+    with pytest.raises(GatewayError) as exc:
+        await gateway.embed(["bonjour"])
+    assert exc.value.user_message
+    rows = _embed_rows()
+    assert sum(1 for r in rows if r["status"] == 503) == 2   # initial attempt + the one retry
+
+
+async def test_embed_converts_a_network_error_to_gateway_error(gateway, monkeypatch):
+    """A raw SDK network exception must become GatewayError, or rag.search()'s
+    `except GatewayError: return keyword_search(...)` never fires and the
+    explain step breaks outright on a network blip instead of degrading."""
+    req = httpx.Request("POST", "http://mock/v1/embeddings")
+    mock_create = AsyncMock(side_effect=APIConnectionError(request=req))
+    monkeypatch.setattr(gateway.client.embeddings, "create", mock_create)
+    with pytest.raises(GatewayError) as exc:
+        await gateway.embed(["bonjour"])
+    assert exc.value.user_message
+    assert mock_create.call_count == 2   # one retry before giving up

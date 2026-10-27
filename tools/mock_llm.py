@@ -10,6 +10,10 @@ Chaos (POST http://localhost:9000/__chaos with JSON):
     {"midsize_503": true}               -> mid-size returns 503 + Retry-After
     {"quota_exhausted_s": 5}            -> next requests get 429 "Team quota exhausted" for 5 s
     {"latency_compact": 0.5, "latency_midsize": 4}
+    {"embed_fail_once": true}           -> the next /v1/embeddings call gets a 503 + Retry-After,
+                                            then the flag clears (simulates one transient hiccup)
+    {"embed_down": true}                -> every /v1/embeddings call gets a 503 until set back to false
+                                            (simulates a sustained embeddings outage)
     {"reset": true}
 """
 from __future__ import annotations
@@ -30,7 +34,8 @@ DIM = 64
 
 app = FastAPI(title="EdNova mock LLM")
 
-DEFAULT_CHAOS = {"midsize_503": False, "quota_until": 0.0, "latency_compact": 0.3, "latency_midsize": 1.5}
+DEFAULT_CHAOS = {"midsize_503": False, "quota_until": 0.0, "latency_compact": 0.3, "latency_midsize": 1.5,
+                 "embed_fail_once": False, "embed_down": False}
 chaos = dict(DEFAULT_CHAOS)
 bucket = {"tokens": 60.0, "updated": time.time()}
 RATE_PER_S, CEILING = 1.0, 60.0
@@ -63,6 +68,10 @@ async def set_chaos(req: Request):
     for k in ("latency_compact", "latency_midsize"):
         if k in body:
             chaos[k] = float(body[k])
+    if "embed_fail_once" in body:
+        chaos["embed_fail_once"] = bool(body["embed_fail_once"])
+    if "embed_down" in body:
+        chaos["embed_down"] = bool(body["embed_down"])
     return chaos
 
 
@@ -141,6 +150,11 @@ def _fake_reply(model: str, system: str, user: str) -> str:
 
 @app.post("/v1/embeddings")
 async def embeddings(req: Request):
+    if chaos.get("embed_down"):
+        return _error(503, "Embeddings endpoint saturated, retry later.", "model_saturated", {"retry-after": "1"})
+    if chaos.get("embed_fail_once"):
+        chaos["embed_fail_once"] = False     # one-shot: the next call succeeds
+        return _error(503, "Embeddings endpoint saturated, retry later.", "model_saturated", {"retry-after": "1"})
     body = await req.json()
     inputs = body.get("input")
     inputs = [inputs] if isinstance(inputs, str) else inputs
